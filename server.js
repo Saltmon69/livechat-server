@@ -131,6 +131,9 @@ bot.on('interactionCreate', async (interaction) => {
     return;
   }
 
+  // Defer immédiatement pour éviter le timeout Discord (3s)
+  await interaction.deferReply({ ephemeral: true });
+
   let url = null;
   let mediaType = null;
 
@@ -170,9 +173,8 @@ bot.on('interactionCreate', async (interaction) => {
   queue.push(payload);
   processQueue(guildId);
 
-  await interaction.reply({
+  await interaction.editReply({
     content: `✅ Envoyé à **${connected}** écran${connected !== 1 ? 's' : ''} !`,
-    ephemeral: true
   });
 });
 
