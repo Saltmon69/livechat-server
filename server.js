@@ -2,6 +2,23 @@ const { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder, Permission
 const { WebSocketServer } = require('ws');
 const express = require('express');
 const http = require('http');
+const https = require('https');
+const os = require('os');
+const fsSync = require('fs');
+
+// Télécharge un fichier Discord en mémoire et le re-sert via une URL temporaire locale
+const fileCache = new Map(); // id -> { buffer, contentType, expires }
+
+function downloadBuffer(url) {
+  return new Promise((resolve, reject) => {
+    https.get(url, (res) => {
+      const chunks = [];
+      res.on('data', c => chunks.push(c));
+      res.on('end', () => resolve({ buffer: Buffer.concat(chunks), contentType: res.headers['content-type'] || '' }));
+      res.on('error', reject);
+    }).on('error', reject);
+  });
+}
 
 const TOKEN = process.env.DISCORD_TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
@@ -19,6 +36,14 @@ const wss = new WebSocketServer({ server });
 
 app.get('/', (req, res) => res.send('LiveChat Server OK'));
 app.get('/health', (req, res) => res.json({ status: 'ok', clients: getTotalClients() }));
+
+app.get('/media/:id', (req, res) => {
+  const cached = fileCache.get(req.params.id);
+  if (!cached) { res.status(404).send('Not found'); return; }
+  res.setHeader('Content-Type', cached.contentType);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.send(cached.buffer);
+});
 
 // clients : Map<guildId, Set<ws>>
 const clients = new Map();
@@ -110,12 +135,27 @@ bot.on('interactionCreate', async (interaction) => {
   let mediaType = null;
 
   if (attachment) {
-    url = attachment.url;
     const ct = attachment.contentType || '';
     if (ct.startsWith('video/')) mediaType = 'video';
     else if (ct.includes('gif')) mediaType = 'gif';
     else if (ct.startsWith('audio/') || /\.(mp3|wav|ogg|aac|flac)$/i.test(attachment.name || '')) mediaType = 'audio';
     else mediaType = 'image';
+
+    try {
+      const { buffer, contentType } = await downloadBuffer(attachment.url);
+      const id = Date.now().toString(36) + Math.random().toString(36).slice(2);
+      fileCache.set(id, { buffer, contentType: contentType || ct });
+      // Expire après 1 minute
+      setTimeout(() => fileCache.delete(id), 60000);
+      // URL locale servie par Express
+      const host = process.env.RAILWAY_PUBLIC_DOMAIN
+        ? `https://\${process.env.RAILWAY_PUBLIC_DOMAIN}`
+        : `http://localhost:\${PORT}`;
+      url = `\${host}/media/\${id}`;
+    } catch(e) {
+      url = attachment.url; // fallback lien Discord
+      console.error('[Media] Erreur download:', e.message);
+    }
   }
 
   const payload = {
@@ -131,7 +171,7 @@ bot.on('interactionCreate', async (interaction) => {
   processQueue(guildId);
 
   await interaction.reply({
-    content: `✅ Envoyé à **${connected}** écran${connected !== 1 ? 's' : ''} !`,
+    content: `✅ Envoyé à **\${connected}** écran\${connected !== 1 ? 's' : ''} !`,
     ephemeral: true
   });
 });
