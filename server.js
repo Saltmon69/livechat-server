@@ -190,3 +190,11 @@ async function registerCommands() {
 
 bot.login(TOKEN);
 server.listen(PORT, () => console.log(`[Server] Port ${PORT}`));
+
+// Keep-alive : évite que Railway mette le serveur en veille
+setInterval(() => {
+  const host = process.env.RAILWAY_PUBLIC_DOMAIN
+    ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
+    : `http://localhost:${PORT}`;
+  https.get(`${host}/health`, () => {}).on('error', () => {});
+}, 4 * 60 * 1000);
