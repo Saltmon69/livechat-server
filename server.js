@@ -101,7 +101,7 @@ bot.once('clientReady', async () => {
 
 bot.on('interactionCreate', async (interaction) => {
   if (!interaction.isChatInputCommand() || interaction.commandName !== 'livechat') return;
-
+  try {
   // Vérif rôle Tars
   const member = interaction.member;
   const hasRole = member.roles.cache.some(r => r.name === ROLE_NAME);
@@ -176,6 +176,9 @@ bot.on('interactionCreate', async (interaction) => {
   await interaction.editReply({
     content: `✅ Envoyé à **${connected}** écran${connected !== 1 ? 's' : ''} !`,
   });
+  } catch(e) {
+    console.error('[Interaction] Erreur:', e.message);
+  }
 });
 
 // File d'attente par guild
