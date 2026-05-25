@@ -114,6 +114,7 @@ bot.on('interactionCreate', async (interaction) => {
     const ct = attachment.contentType || '';
     if (ct.startsWith('video/')) mediaType = 'video';
     else if (ct.includes('gif')) mediaType = 'gif';
+    else if (ct.startsWith('audio/') || /\.(mp3|wav|ogg|aac|flac)$/i.test(attachment.name || '')) mediaType = 'audio';
     else mediaType = 'image';
   }
 
