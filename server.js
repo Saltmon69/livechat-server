@@ -1,3 +1,4 @@
+// fix defer + media en cours
 const { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const { WebSocketServer } = require('ws');
 const express = require('express');
