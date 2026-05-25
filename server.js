@@ -149,9 +149,9 @@ bot.on('interactionCreate', async (interaction) => {
       setTimeout(() => fileCache.delete(id), 60000);
       // URL locale servie par Express
       const host = process.env.RAILWAY_PUBLIC_DOMAIN
-        ? `https://\${process.env.RAILWAY_PUBLIC_DOMAIN}`
-        : `http://localhost:\${PORT}`;
-      url = `\${host}/media/\${id}`;
+        ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
+        : `http://localhost:${PORT}`;
+      url = `${host}/media/${id}`;
     } catch(e) {
       url = attachment.url; // fallback lien Discord
       console.error('[Media] Erreur download:', e.message);
@@ -171,7 +171,7 @@ bot.on('interactionCreate', async (interaction) => {
   processQueue(guildId);
 
   await interaction.reply({
-    content: `✅ Envoyé à **\${connected}** écran\${connected !== 1 ? 's' : ''} !`,
+    content: `✅ Envoyé à **${connected}** écran${connected !== 1 ? 's' : ''} !`,
     ephemeral: true
   });
 });
